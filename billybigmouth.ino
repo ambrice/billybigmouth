@@ -10,6 +10,8 @@
 #define BODY_PIN_A 24
 #define BODY_PIN_B 25
 
+#define BUTTON_PIN 32
+
 AudioPlaySdWav           playWav1;
 AudioAmplifier           amp1;
 AudioOutputI2S           audioOutput;
@@ -162,7 +164,9 @@ void setup() {
   pinMode(MOUTH_PIN_B, OUTPUT);
   pinMode(BODY_PIN_A, OUTPUT);
   pinMode(BODY_PIN_B, OUTPUT);
-  
+
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
   // Audio connections require memory to work.  For more
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(8);
@@ -171,7 +175,7 @@ void setup() {
   // This may wait forever if the SDA & SCL pins lack
   // pullup resistors
   sgtl5000_1.enable();
-  amp1.gain(0.1);
+  amp1.gain(0.3);
 
   if (!(SD.begin(BUILTIN_SDCARD))) {
     // stop here, but print a message repetitively
@@ -187,6 +191,10 @@ void setup() {
 static int current = 0;
 
 void loop() {
+  while (digitalRead(BUTTON_PIN) == HIGH) {
+    delay(5);
+  }
+
   // put your main code here, to run repeatedly:
   if (wavfiles[current] == NULL || current == MAX_FILES) {
     current = 0;
@@ -231,5 +239,4 @@ void loop() {
   }
 
   ++current;
-  delay(600000);
 }
