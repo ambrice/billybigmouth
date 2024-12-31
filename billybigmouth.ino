@@ -1,4 +1,3 @@
-#include <MX1508.h>
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -11,13 +10,11 @@
 #define BODY_PIN_A 24
 #define BODY_PIN_B 25
 
-MX1508 mouthMotor(MOUTH_PIN_A, MOUTH_PIN_B);
-MX1508 bodyMotor(BODY_PIN_A, BODY_PIN_B);
-
 AudioPlaySdWav           playWav1;
+AudioAmplifier           amp1;
 AudioOutputI2S           audioOutput;
-AudioConnection          patchCord1(playWav1, 0, audioOutput, 0);
-AudioConnection          patchCord2(playWav1, 1, audioOutput, 1);
+AudioConnection          patchCord1(playWav1, 0, amp1, 0);
+AudioConnection          patchCord2(amp1, 0, audioOutput, 0);
 AudioControlSGTL5000     sgtl5000_1;
 
 /* Motor functions */
@@ -36,27 +33,33 @@ struct MovementInstruction {
 };
 
 void openMouth(uint16_t t) {
-  mouthMotor.motorGo(-255);
+  digitalWrite(MOUTH_PIN_A, LOW);
+  digitalWrite(MOUTH_PIN_B, HIGH);
   delay(t);
-  mouthMotor.motorGo(0);
+  digitalWrite(MOUTH_PIN_B, LOW);
 }
 
 void closeMouth() {
-  mouthMotor.motorGo(0);
+  digitalWrite(MOUTH_PIN_A, LOW);
+  digitalWrite(MOUTH_PIN_B, LOW);
 }
 
 void moveHead() {
-  bodyMotor.motorGo(255);
+  digitalWrite(BODY_PIN_A, HIGH);
+  digitalWrite(BODY_PIN_B, LOW);
 }
 
 void moveTail(uint16_t t) {
-  bodyMotor.motorGo(-255);
+  digitalWrite(BODY_PIN_A, LOW);
+  digitalWrite(BODY_PIN_B, HIGH);
   delay(t);
-  bodyMotor.motorGo(0);
+  digitalWrite(BODY_PIN_A, LOW);
+  digitalWrite(BODY_PIN_B, LOW);
 }
 
 void releaseBody() {
-  bodyMotor.motorGo(0);
+  digitalWrite(BODY_PIN_B, LOW);
+  digitalWrite(BODY_PIN_A, LOW);
 }
 
 /* Audio functions */
@@ -154,6 +157,12 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
 
+  // GPIO setup
+  pinMode(MOUTH_PIN_A, OUTPUT);
+  pinMode(MOUTH_PIN_B, OUTPUT);
+  pinMode(BODY_PIN_A, OUTPUT);
+  pinMode(BODY_PIN_B, OUTPUT);
+  
   // Audio connections require memory to work.  For more
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(8);
@@ -162,7 +171,7 @@ void setup() {
   // This may wait forever if the SDA & SCL pins lack
   // pullup resistors
   sgtl5000_1.enable();
-  sgtl5000_1.volume(0.1);
+  amp1.gain(0.1);
 
   if (!(SD.begin(BUILTIN_SDCARD))) {
     // stop here, but print a message repetitively
@@ -201,9 +210,11 @@ void loop() {
         break;
       case TAIL:
         moveTail(100);
+        pos += 100;
         break;
       case MOUTH:
         openMouth(100);
+        pos += 100;
         break;
       case RELEASE:
         releaseBody();
